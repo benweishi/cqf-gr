@@ -226,5 +226,33 @@ int main(int argc, char **argv)
 		}
 	}
 	fprintf(stdout, "Validated the CQF.\n");
+
+	RAND_bytes((unsigned char *)vals, sizeof(*vals) * nvals);
+	RAND_bytes((unsigned char *)keys, sizeof(*keys) * nvals);
+
+	/* Insert keys in the CQF */
+	fprintf(stdout, "Testing inserts.\n");
+	for (uint64_t i = 0; i < nvals; i++) {
+		int ret = qf_insert(&qf, keys[i], vals[i], QF_NO_LOCK | QF_KEY_IS_HASH);
+		if (ret == QF_KEY_EXISTS)
+			fprintf(stdout, "Inserting existing key: %lx.\n", keys[i]);
+		else if (ret < 0) {
+			fprintf(stderr, "failed insertion for key: %lx, returned %d.\n", keys[i], ret);
+			if (ret == QF_NO_SPACE)
+				fprintf(stderr, "CQF is full.\n");
+			else if (ret == QF_COULDNT_LOCK)
+				fprintf(stderr, "TRY_ONCE_LOCK failed.\n");
+			else
+				fprintf(stderr, "Does not recognise return value.\n");
+			abort();
+		}
+	}
+	// inserting again should return QF_KEY_EXISTS
+	for (uint64_t i = 0; i < nvals; i++) {
+		int ret = qf_insert(&qf, keys[i], vals[i], QF_NO_LOCK | QF_KEY_IS_HASH);
+		if (ret != QF_KEY_EXISTS) {
+			fprintf(stderr, "Inserting a key %lx again returned %d, should be QF_KEY_EXISTS=%d.\n", keys[i], ret, QF_KEY_EXISTS);
+		}
+	}
 }
 

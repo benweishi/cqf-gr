@@ -226,6 +226,7 @@ int main(int argc, char **argv)
 		}
 	}
 	fprintf(stdout, "Validated the CQF.\n");
+	qf_dump(&qf);
 
 	RAND_bytes((unsigned char *)vals, sizeof(*vals) * nvals);
 	RAND_bytes((unsigned char *)keys, sizeof(*keys) * nvals);
@@ -233,6 +234,7 @@ int main(int argc, char **argv)
 	/* Insert keys in the CQF */
 	fprintf(stdout, "Testing inserts.\n");
 	for (uint64_t i = 0; i < nvals; i++) {
+		printf("%d\n", i);
 		int ret = qf_insert(&qf, keys[i], vals[i], QF_NO_LOCK | QF_KEY_IS_HASH);
 		if (ret == QF_KEY_EXISTS)
 			fprintf(stdout, "Inserting existing key: %lx.\n", keys[i]);

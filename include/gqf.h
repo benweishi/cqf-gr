@@ -269,12 +269,14 @@ extern "C" {
 								 					value_bits, enum qf_hashmode hash, uint32_t seed,
 										 			uint64_t tombstone_space, uint64_t nrebuilds);
 
+	int qf_clear_tombstones(const QF *qf, uint8_t flags);
 	/***********************************
 		Debugging functions.
 	************************************/
 
 	void qf_dump(const QF *);
 	void qf_dump_metadata(const QF *qf);
+
 
 #ifdef __cplusplus
 }

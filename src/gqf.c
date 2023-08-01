@@ -2187,4 +2187,49 @@ void qf_intersect(const QF *qfa, const QF *qfb, QF *qfr)
 	* 				consider to rebuild it again.
 	* 	== QF_COULDNT_LOCK: TRY_ONCE_LOCK has failed to acquire the lock.
 */
-int qf_rebuild(const QF *qf, uint8_t flags);
+int qf_rebuild(const QF *qf, uint8_t flags) {
+}
+
+uint64_t qf_clear_tombstones_in_run(const QF *qf, uint64_t home_slot, uint64_t run_start, uint8_t flags) {
+	uint64_t idx = run_start;
+	uint64_t runend_index = run_end(qf, home_slot);
+	while (idx <= runend_index) {
+		if (!is_tombstone(qf, idx)) {
+			idx++;
+			continue;
+		}
+		uint64_t tombstone_start = idx;
+		uint64_t tombstone_end = idx;
+		// TODO: There must be a more efficient way to find this.
+		while (is_tombstone(qf, tombstone_end) && tombstone_end <= runend_index) {
+			tombstone_end++;
+		}
+		int only_element = (tombstone_start == run_start && tombstone_end == runend_index+1);
+		// tombstone_end is one step ahead of the last tombstone in this cluster.
+		remove_replace_slots_and_shift_remainders_and_runends_and_offsets(
+			qf, only_element, home_slot, tombstone_start, 0x0, 0, tombstone_end - tombstone_start
+		);
+		if (only_element) {
+			runend_index = run_start;
+			break;
+		}
+		runend_index -= (tombstone_end-tombstone_start);
+		idx++;
+	}
+	return runend_index;
+}
+
+int qf_clear_tombstones(const QF *qf, uint8_t flags) {
+	// TODO: Lock the whole Hashset.
+	uint64_t run_start = 0;
+	uint64_t run_end = 0;
+	for (uint64_t idx=0; idx < qf->metadata->nslots; idx++) {
+		if (idx > run_start) {
+			run_start = idx;
+		}
+		if (is_occupied(qf, idx)) {
+			run_start = qf_clear_tombstones_in_run(qf, idx, run_start, flags);
+			run_start++;
+		}
+	}
+}
